@@ -1,0 +1,70 @@
+# ========================
+# Python
+# ========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# ========================
+# Testing
+# ========================
+.pytest_cache/      # Cache của pytest — KHÔNG cần push lên Git
+.coverage
+htmlcov/
+*.xml               # Coverage/test reports XML
+
+# ========================
+# Virtual environments
+# ========================
+.venv/
+venv/
+env/
+ENV/
+
+# ========================
+# IDE / Editor
+# ========================
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ========================
+# Docker
+# ========================
+# Không gitignore docker-compose.yml vì cần share trong nhóm
+
+# ========================
+# Logs & temp files
+# ========================
+*.log
+*.tmp
+
+# ========================
+# Database dumps (nếu có)
+# ========================
+# init.sql GIỮ LẠI vì cần để seed data
+# *.sql  <- không bỏ dòng này
+
+# ========================
+# Module 1: data runtime
+# Các thư mục này do container tạo ra, không cần push
+# ========================
+Module1/input_data/*.csv
+Module1/processed_data/
+Module1/error_data/
+Module1/cleaned_data/
+
+# ========================
+# Environment variables (BẢO MẬT)
+# ========================
+.env
+.env.*
+!.env.example
