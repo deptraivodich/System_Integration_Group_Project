@@ -1,0 +1,17 @@
+
+_format_version: "3.0"
+
+services:
+  - name: order-service
+    url: http://order_api:5000
+    routes:
+      - name: order-route
+        paths:
+          - /api/orders
+
+  - name: report-service
+    url: http://report-service:5002
+    routes:
+      - name: report-route
+        paths:
+          - /api/reports
