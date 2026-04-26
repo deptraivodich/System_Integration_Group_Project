@@ -30,8 +30,6 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: "123456"
       MYSQL_DATABASE: noah_retail
-    ports:
-      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./Module1/init.sql:/docker-entrypoint-initdb.d/01_init.sql
@@ -176,5 +174,24 @@ services:
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_USER: user
       RABBITMQ_PASS: password
+    networks:
+      - noah_network
+# ========================
+# MODULE 3 - REPORT SERVICE (NEW)
+# ========================
+  report-service:
+    build: ./Module3-report
+    container_name: noah_report_service
+    restart: unless-stopped
+    depends_on:
+      mysql_db:
+        condition: service_healthy
+      postgres_db:
+        condition: service_healthy
+    ports:
+      - "5002:5002"
+    environment:
+      MYSQL_HOST: mysql_db
+      POSTGRES_HOST: postgres_db
     networks:
       - noah_network
