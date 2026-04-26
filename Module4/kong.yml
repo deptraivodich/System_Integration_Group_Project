@@ -1,5 +1,4 @@
-
-_format_version: "3.0"
+_format_version: "2.1"
 
 services:
   - name: order-service
@@ -8,10 +7,31 @@ services:
       - name: order-route
         paths:
           - /api/orders
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 10
+          policy: local
+      - name: key-auth
+        config:
+          key_names:
+            - apikey
 
   - name: report-service
-    url: http://report-service:5002
+    url: http://report_api:5002
     routes:
       - name: report-route
         paths:
-          - /api/reports
+          - /api/report
+        strip_path: false
+    plugins:
+      - name: key-auth
+        config:
+          key_names:
+            - apikey
+
+consumers:
+  - username: noah_admin
+    keyauth_credentials:
+      - key: noah-secret-key
