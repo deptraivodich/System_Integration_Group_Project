@@ -42,6 +42,9 @@ noah_rabbitmq       Up (healthy)    0.0.0.0:5672->5672/tcp, 0.0.0.0:15672->15672
 noah_module1        Up              
 noah_order_api      Up (healthy)    0.0.0.0:5000->5000/tcp
 noah_order_worker   Up              
+noah_report_api     Up (healthy)    
+noah_dashboard      Up              0.0.0.0:8501->8501/tcp
+noah_kong_gateway   Up              0.0.0.0:8000->8000/tcp, 0.0.0.0:8001->8001/tcp
 ```
 
 ### Bước 4: Test nhanh pipeline
@@ -233,27 +236,45 @@ docker exec -it noah_mysql mysql -uroot -p123456 noah_retail \
 
 ---
 
-### MODULE 3: Dashboard 
+### MODULE 3: Dashboard & Report API
+
+**Yêu cầu trước:** Hệ thống Database đang chạy
 
 ```bash
-docker-compose up mysql_db
-docker-compose up postgres_db
-docker-compose up report-service
-Kiểm tra: http://localhost:5002/api/report
+# Khởi động Report API và Dashboard
+docker compose up -d report_api dashboard
+
+# Kiểm tra Report API (JSON)
+curl http://localhost:5002/api/report
+
+# Kiểm tra Giao diện Web Dashboard
+# Mở trình duyệt truy cập:
+http://localhost:8501
 ```
-** Kết Quả Mong Đợi **
-JSON chứa:
-- danh sách đơn hàng
-- thống kê doanh thu
 
 ---
 
-### MODULE 4: Kong Gateway (TODO - cập nhật sau khi làm xong)
+### MODULE 4: Kong Gateway (Security)
+
+**Yêu cầu trước:** Order API và Report API đang chạy
 
 ```bash
-# Thành viên phụ trách Module 4 cập nhật phần này
-# docker compose up -d kong
-# curl -H "apikey: noah-secret-key" http://localhost:8000/api/orders
+# Khởi động Kong Gateway
+docker compose up -d kong
+
+# 1. Test gọi API KHÔNG có Key (Sẽ bị từ chối - 401 Unauthorized)
+curl -X POST http://localhost:8000/orders \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": 1, "product_id": 101, "quantity": 5}'
+
+# 2. Test gọi API CÓ Key hợp lệ (Thành công - 202 Accepted)
+curl -X POST http://localhost:8000/orders \
+  -H "apikey: noah-secret-key" \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": 1, "product_id": 101, "quantity": 5}'
+
+# 3. Test gọi Report API qua Kong
+curl -H "apikey: noah-secret-key" http://localhost:8000/report
 ```
 
 ---
@@ -302,8 +323,10 @@ docker exec -it noah_order_api bash
 | PostgreSQL | 5432 | 5432 | Kết nối DB tool |
 | RabbitMQ AMQP | 5672 | 5672 | App gửi/nhận message |
 | RabbitMQ UI | 15672 | 15672 | http://localhost:15672 |
-| Order API | 5000 | 5000 | http://localhost:5000 |
-| Kong Gateway | 8000 | 8000 | (Module 4) |
+| Order API | 5000 | 5000 | Cổng nội bộ cho Module 2 |
+| Report API | 5002 | 5002 | Cổng nội bộ cho Module 3 |
+| Dashboard | 8501 | 8501 | http://localhost:8501 (Giao diện Web) |
+| Kong Gateway | 8000 | 8000 | Cổng chính bảo mật để gọi API |
 
 ---
 
@@ -333,5 +356,5 @@ docker system prune -a
 | Module 1 - CSV Watchdog | [Tên] | ✅ Done | 2026-04-25 | 5 lần retry |
 | Module 2A - Order API | [Tên] | ✅ Done | 2026-04-25 | 13 tests |
 | Module 2B - Order Worker | [Tên] | ✅ Done | 2026-04-25 | 10 tests |
-| Module 3 - Dashboard | [Tên] | ❌ Todo | - | - |
-| Module 4 - Kong Gateway | [Tên] | ❌ Todo | - | - |
+| Module 3 - Dashboard | [Tên] | ✅ Done | 2026-04-26 | FastAPI & Streamlit UI |
+| Module 4 - Kong Gateway | [Tên] | ✅ Done | 2026-04-26 | API Key & Rate Limit |

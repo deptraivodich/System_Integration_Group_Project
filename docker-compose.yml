@@ -176,22 +176,74 @@ services:
       RABBITMQ_PASS: password
     networks:
       - noah_network
-# ========================
-# MODULE 3 - REPORT SERVICE (NEW)
-# ========================
-  report-service:
-    build: ./Module3-report
-    container_name: noah_report_service
+  # ========================================================
+  # MODULE 3: REPORT API (FastAPI)
+  # ========================================================
+  report_api:
+    build:
+      context: ./Module3/report_api
+      dockerfile: Dockerfile
+    container_name: noah_report_api
     restart: unless-stopped
     depends_on:
       mysql_db:
         condition: service_healthy
       postgres_db:
         condition: service_healthy
-    ports:
-      - "5002:5002"
     environment:
       MYSQL_HOST: mysql_db
       POSTGRES_HOST: postgres_db
+      MYSQL_USER: root
+      MYSQL_PASS: "123456"
+      POSTGRES_USER: postgres
+      POSTGRES_PASS: postgres123
     networks:
       - noah_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5002/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ========================================================
+  # MODULE 3: DASHBOARD (Streamlit)
+  # ========================================================
+  dashboard:
+    build:
+      context: ./Module3/dashboard
+      dockerfile: Dockerfile
+    container_name: noah_dashboard
+    restart: unless-stopped
+    depends_on:
+      - report_api
+    environment:
+      REPORT_API_URL: "http://report_api:5002/api/report"
+    ports:
+      - "8501:8501" # Web UI chạy cổng 8501
+    networks:
+      - noah_network
+
+  # ========================================================
+  # MODULE 4: KONG API GATEWAY
+  # ========================================================
+  kong:
+    image: kong:2.8
+    container_name: noah_kong_gateway
+    restart: unless-stopped
+    environment:
+      KONG_DATABASE: "off" # DB-less mode
+      KONG_DECLARATIVE_CONFIG: "/usr/local/kong/declarative/kong.yml"
+      KONG_PROXY_ACCESS_LOG: "/dev/stdout"
+      KONG_PROXY_ERROR_LOG: "/dev/stderr"
+      KONG_ADMIN_LISTEN: "0.0.0.0:8001, 0.0.0.0:8444 ssl"
+    ports:
+      - "8000:8000" # Cổng Proxy API
+      - "8001:8001" # Cổng Admin
+    volumes:
+      - ./Module4/kong.yml:/usr/local/kong/declarative/kong.yml
+    networks:
+      - noah_network
+    depends_on:
+      - order_api
+      - report_api
