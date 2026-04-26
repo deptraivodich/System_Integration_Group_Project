@@ -233,13 +233,18 @@ docker exec -it noah_mysql mysql -uroot -p123456 noah_retail \
 
 ---
 
-### MODULE 3: Dashboard (TODO - cập nhật sau khi làm xong)
+### MODULE 3: Dashboard 
 
 ```bash
-# Thành viên phụ trách Module 3 cập nhật phần này
-# docker compose up -d report_service
-# curl http://localhost:8080/api/report
+docker-compose up mysql_db
+docker-compose up postgres_db
+docker-compose up report-service
+Kiểm tra: http://localhost:5002/api/report
 ```
+** Kết Quả Mong Đợi **
+JSON chứa:
+- danh sách đơn hàng
+- thống kê doanh thu
 
 ---
 
