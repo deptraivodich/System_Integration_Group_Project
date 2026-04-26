@@ -1,0 +1,197 @@
+# ========================================================
+# NOAH Retail - Unified Commerce System
+# Docker Compose cho toàn bộ hệ thống
+# ========================================================
+
+networks:
+  noah_network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  postgres_data:
+  rabbitmq_data:
+  module1_input:
+  module1_processed:
+  module1_error:
+  module1_cleaned:
+
+services:
+
+  # ========================================================
+  # HẠ TẦNG (INFRASTRUCTURE)
+  # ========================================================
+
+  # 1. MySQL 8.0 — Web Store Database
+  mysql_db:
+    image: mysql:8.0
+    container_name: noah_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"
+      MYSQL_DATABASE: noah_retail
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./Module1/init.sql:/docker-entrypoint-initdb.d/01_init.sql
+      - ./Module2/init_module2.sql:/docker-entrypoint-initdb.d/02_module2.sql
+    networks:
+      - noah_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p123456"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # 2. PostgreSQL 15 — Finance Database
+  postgres_db:
+    image: postgres:15
+    container_name: noah_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_DB: noah_finance
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - noah_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # 3. RabbitMQ 3 — Message Broker
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: noah_rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: password
+    ports:
+      - "5672:5672"    # AMQP protocol
+      - "15672:15672"  # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - noah_network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ========================================================
+  # MODULE 1: LEGACY ADAPTER (CSV Watchdog)
+  # ========================================================
+  module1_watcher:
+    build:
+      context: ./Module1
+      dockerfile: Dockerfile
+    container_name: noah_module1
+    restart: unless-stopped
+    depends_on:
+      mysql_db:
+        condition: service_healthy
+    environment:
+      DB_HOST: mysql_db
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_NAME: noah_retail
+    volumes:
+      - module1_input:/app/input_data
+      - module1_processed:/app/processed_data
+      - module1_error:/app/error_data
+      - module1_cleaned:/app/cleaned_data
+    networks:
+      - noah_network
+
+  # ========================================================
+  # MODULE 2A: ORDER API (Producer)
+  # ========================================================
+  order_api:
+    build:
+      context: ./Module2/order_api
+      dockerfile: Dockerfile
+    container_name: noah_order_api
+    restart: unless-stopped
+    depends_on:
+      mysql_db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      DB_HOST: mysql_db
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_NAME: noah_retail
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: user
+      RABBITMQ_PASS: password
+    ports:
+      - "5000:5000"
+    networks:
+      - noah_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ========================================================
+  # MODULE 2B: ORDER WORKER (Consumer)
+  # ========================================================
+  order_worker:
+    build:
+      context: ./Module2/order_worker
+      dockerfile: Dockerfile
+    container_name: noah_order_worker
+    restart: unless-stopped
+    depends_on:
+      mysql_db:
+        condition: service_healthy
+      postgres_db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      DB_HOST: mysql_db
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_NAME: noah_retail
+      PG_HOST: postgres_db
+      PG_PORT: "5432"
+      PG_USER: postgres
+      PG_PASSWORD: postgres123
+      PG_DB: noah_finance
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: user
+      RABBITMQ_PASS: password
+    networks:
+      - noah_network
+# ========================
+# MODULE 3 - REPORT SERVICE (NEW)
+# ========================
+  report-service:
+    build: ./Module3-report
+    container_name: noah_report_service
+    restart: unless-stopped
+    depends_on:
+      mysql_db:
+        condition: service_healthy
+      postgres_db:
+        condition: service_healthy
+    ports:
+      - "5002:5002"
+    environment:
+      MYSQL_HOST: mysql_db
+      POSTGRES_HOST: postgres_db
+    networks:
+      - noah_network
