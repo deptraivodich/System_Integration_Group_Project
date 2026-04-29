@@ -174,8 +174,6 @@ services:
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_USER: user
       RABBITMQ_PASS: password
-      TELEGRAM_BOT_TOKEN: "" # Thay bằng bot token thực tế
-      TELEGRAM_CHAT_ID: ""   # Thay bằng chat id thực tế
     networks:
       - noah_network
   # ========================================================
@@ -249,3 +247,15 @@ services:
     depends_on:
       - order_api
       - report_api
+
+  # ========================================================
+  # MODULE 5: CLIENT STOREFRONT (OPTION 5)
+  # ========================================================
+  storefront:
+    container_name: noah_storefront
+    build:
+      context: ./Module5/storefront
+    ports:
+      - "3000:80"
+    networks:
+      - noah_network

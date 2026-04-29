@@ -14,9 +14,6 @@ import json
 import time
 import random
 import logging
-import threading
-import requests
-from datetime import datetime
 
 import pika
 import mysql.connector
@@ -53,10 +50,6 @@ RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "rabbitmq")
 RABBITMQ_USER = os.getenv("RABBITMQ_USER", "user")
 RABBITMQ_PASS = os.getenv("RABBITMQ_PASS", "password")
 QUEUE_NAME    = "order_queue"
-
-# Telegram Notification (Option 1)
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
-TELEGRAM_CHAT_ID   = os.getenv("TELEGRAM_CHAT_ID", "")
 
 MAX_RETRIES = 10
 RETRY_DELAY = 5
@@ -134,31 +127,6 @@ def get_rabbitmq_channel():
             if attempt < MAX_RETRIES:
                 time.sleep(RETRY_DELAY)
     raise RuntimeError("Không thể kết nối RabbitMQ!")
-
-
-# =========================
-# NOTIFICATION (MODULE 5 - OPTION 1)
-# =========================
-def send_telegram_notification(order_id, user_id, amount):
-    """
-    Gửi thông báo Telegram dưới dạng Fire-and-forget.
-    Nếu không cấu hình token, sẽ log ra mock message.
-    """
-    try:
-        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        message = f"✅ Xin chào User {user_id}, đơn hàng #{order_id} trị giá ${amount} đã được xác nhận thanh toán thành công lúc {current_time}."
-        
-        if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
-            url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-            payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message}
-            response = requests.post(url, json=payload, timeout=5)
-            response.raise_for_status()
-            logger.info(f"[INFO] Order #{order_id} synced. Notification sent to user (Telegram).")
-        else:
-            # Mock notification nếu thiếu token
-            logger.info(f"[INFO] Order #{order_id} synced. Notification sent to user (Mock). Message: {message}")
-    except Exception as e:
-        logger.error(f"[Notification Error] Không thể gửi thông báo cho order_id={order_id}: {e}")
 
 
 # =========================
@@ -246,13 +214,9 @@ def process_order(ch, method, properties, body):
         mysql_cursor.close()
         logger.info(f"[MySQL] Đã UPDATE order_id={order_id} → COMPLETED")
 
-        # Bước 5: Gửi thông báo bất đồng bộ (Fire-and-forget)
-        # Sử dụng threading để không block main thread
-        threading.Thread(target=send_telegram_notification, args=(order_id, user_id, 0.0), daemon=True).start()
-
-        # Bước 6: ACK message (xóa khỏi queue)
+        # Bước 5: ACK message (xóa khỏi queue)
         ch.basic_ack(delivery_tag=method.delivery_tag)
-        logger.info(f"[Worker] ✅ Order #{order_id} processed. ACK đã gửi.")
+        logger.info(f"[Worker] ✅ Order #{order_id} synced. ACK đã gửi.")
 
     except json.JSONDecodeError as e:
         logger.error(f"[Worker] ❌ Message không hợp lệ (JSON parse error): {e}")

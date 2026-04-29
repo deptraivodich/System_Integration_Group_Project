@@ -17,6 +17,21 @@ services:
         config:
           key_names:
             - apikey
+      - name: cors
+        config:
+          origins:
+            - "*"
+          methods:
+            - GET
+            - POST
+            - OPTIONS
+          headers:
+            - apikey
+            - Content-Type
+          exposed_headers:
+            - apikey
+          credentials: true
+          max_age: 3600
 
   - name: report-service
     url: http://report_api:5002
