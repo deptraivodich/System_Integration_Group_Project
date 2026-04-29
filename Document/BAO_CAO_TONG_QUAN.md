@@ -75,7 +75,11 @@ Toàn bộ hệ thống được chia thành 6 phần (Module) kết nối lỏn
 1. **Gõ lệnh khởi động:** `docker compose up -d` -> Show màn hình Docker Desktop xanh mượt.
 2. **Mở trình duyệt (Trang Quản trị):** Mở `http://localhost:8501` để show giao diện Dashboard.
 3. **Mở trình duyệt (Trang Cửa Hàng):** Mở `http://localhost:3000` (Module 5) để show giao diện bán hàng đẹp mắt cho người dùng cuối.
-4. **Trình diễn Mua hàng bị chặn:** Dùng Postman hoặc Terminal bắn thử 1 request vào API Order (Cổng 8000) **không kèm API Key** -> Show cho thầy cô thấy hệ thống Kong Gateway chặn truy cập trái phép.
+4. **Trình diễn Mua hàng bị chặn:** Dùng Postman hoặc Terminal (PowerShell) bắn thử 1 request vào API Order (Cổng 8000) **không kèm API Key** -> Show cho thầy cô thấy hệ thống Kong Gateway chặn truy cập trái phép.
+   - *Cách làm (Dùng Terminal/PowerShell):* Mở Terminal lên và copy dán dòng lệnh này vào:
+     `Invoke-RestMethod -Uri http://localhost:8000/api/orders -Method POST -ContentType "application/json" -Body '{"user_id": 1, "product_id": 1, "quantity": 1}'`
+   - *Cách làm (Dùng Postman):* Tạo 1 request POST tới `http://localhost:8000/api/orders`, phần Body chọn `raw` -> `JSON` và điền `{"user_id": 1, "product_id": 1, "quantity": 1}`. Nhấn Send.
+   - **Kết quả:** Màn hình sẽ báo lỗi màu đỏ `{"message":"No API key found in request"}` hoặc `401 Unauthorized`. Giảng viên sẽ rất ấn tượng vì bạn đã bảo mật thành công!
 5. **Trình diễn Mua hàng thành công (End-to-End):** Quay lại trang Cửa Hàng (Cổng 3000), bấm nút "Mua Ngay". Trang này đã tự động nhúng API Key hợp lệ nên sẽ báo mua hàng thành công.
 6. **Mở Dashboard:** Mở lại tab `http://localhost:8501` để chứng minh biểu đồ Doanh thu và Số đơn hàng tự động tăng lên nhờ hệ thống Worker và Data Stitching chạy hoàn hảo bên dưới. 
 
