@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOAH Retail Storefront</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        :root {
+            --bg-dark: #0f172a;
+            --bg-card: rgba(30, 41, 59, 0.7);
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --accent: #10b981;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            background-image: radial-gradient(circle at 50% -20%, #1e3a8a 0%, var(--bg-dark) 50%);
+        }
+
+        header {
+            width: 100%;
+            padding: 2rem 0;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .container {
+            max-width: 1000px;
+            width: 90%;
+            margin: 3rem auto;
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .product-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 1.5rem;
+            backdrop-filter: blur(16px);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.3);
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 200px;
+            border-radius: 8px;
+            background-color: rgba(255, 255, 255, 0.05);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+        }
+
+        .product-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0 0 0.5rem 0;
+        }
+
+        .product-desc {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+
+        .buy-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        input[type="number"], input[type="text"] {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            transition: border-color 0.3s;
+            box-sizing: border-box;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+        }
+
+        .btn-buy {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-buy:hover {
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+            transform: scale(1.02);
+        }
+
+        .btn-buy:active {
+            transform: scale(0.98);
+        }
+
+        .btn-buy.loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        /* Toast Notification */
+        #toast {
+            visibility: hidden;
+            min-width: 300px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            text-align: center;
+            border-radius: 8px;
+            padding: 16px;
+            position: fixed;
+            z-index: 50;
+            bottom: 30px;
+            font-weight: 500;
+            box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.4);
+            transform: translateY(20px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        #toast.show {
+            visibility: visible;
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        #toast.error {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            box-shadow: 0 10px 25px -5px rgba(239, 68, 68, 0.4);
+        }
+
+        /* Loader */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>NOAH Unified Store</h1>
+    </header>
+
+    <div class="container">
+        <div class="products-grid" id="products-container">
+            <!-- Product 1 -->
+            <div class="product-card">
+                <div class="product-image">👟</div>
+                <h3 class="product-title">Giày Nike Air Max (Mock)</h3>
+                <p class="product-desc">Thiết kế đột phá với đệm Air Max siêu êm ái. Mang lại cảm giác thoải mái trên từng bước chân.</p>
+                <div class="buy-controls">
+                    <input type="text" id="user-101" placeholder="Nhập User ID (VD: 99)" value="99">
+                    <input type="number" id="qty-101" placeholder="Số lượng" value="1" min="1">
+                    <button class="btn-buy" onclick="buyProduct(101, this)">
+                        <span>Mua Ngay</span>
+                        <div class="spinner"></div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Product 2 -->
+            <div class="product-card">
+                <div class="product-image">💻</div>
+                <h3 class="product-title">MacBook Pro M3</h3>
+                <p class="product-desc">Chip M3 siêu mạnh mẽ. Màn hình Liquid Retina XDR tuyệt đẹp. Dành cho dân chuyên nghiệp.</p>
+                <div class="buy-controls">
+                    <input type="text" id="user-102" placeholder="Nhập User ID (VD: 99)" value="99">
+                    <input type="number" id="qty-102" placeholder="Số lượng" value="1" min="1">
+                    <button class="btn-buy" onclick="buyProduct(102, this)">
+                        <span>Mua Ngay</span>
+                        <div class="spinner"></div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Product 3 -->
+            <div class="product-card">
+                <div class="product-image">🎧</div>
+                <h3 class="product-title">Tai nghe Sony WH-1000XM5</h3>
+                <p class="product-desc">Chống ồn chủ động tốt nhất thế giới. m thanh vòm 360 cực chất lượng. Nghe nhạc cực đã.</p>
+                <div class="buy-controls">
+                    <input type="text" id="user-103" placeholder="Nhập User ID (VD: 99)" value="99">
+                    <input type="number" id="qty-103" placeholder="Số lượng" value="1" min="1">
+                    <button class="btn-buy" onclick="buyProduct(103, this)">
+                        <span>Mua Ngay</span>
+                        <div class="spinner"></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast">Cảm ơn bạn đã mua hàng!</div>
+
+    <script>
+        // API URL trỏ thẳng vào Kong Gateway
+        const API_URL = 'http://localhost:8000/api/orders';
+        const API_KEY = 'noah-secret-key';
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById("toast");
+            toast.textContent = message;
+            
+            if (isError) {
+                toast.classList.add("error");
+            } else {
+                toast.classList.remove("error");
+            }
+            
+            toast.classList.add("show");
+            
+            setTimeout(function(){ 
+                toast.classList.remove("show"); 
+            }, 3000);
+        }
+
+        async function buyProduct(productId, btnElement) {
+            const userIdInput = document.getElementById(`user-${productId}`);
+            const qtyInput = document.getElementById(`qty-${productId}`);
+            
+            const userId = parseInt(userIdInput.value);
+            const quantity = parseInt(qtyInput.value);
+
+            if (!userId || isNaN(userId)) {
+                showToast("Vui lòng nhập User ID hợp lệ!", true);
+                return;
+            }
+
+            if (!quantity || quantity < 1) {
+                showToast("Số lượng phải lớn hơn 0!", true);
+                return;
+            }
+
+            // Hiển thị hiệu ứng loading
+            btnElement.classList.add('loading');
+            btnElement.querySelector('span').style.display = 'none';
+            btnElement.querySelector('.spinner').style.display = 'block';
+
+            const payload = {
+                user_id: userId,
+                product_id: productId,
+                quantity: quantity
+            };
+
+            try {
+                // Gọi tới KONG GATEWAY
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': API_KEY
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    showToast(`🎉 Thành công! Đơn hàng #${data.order_id} đã được gửi.`);
+                } else if (response.status === 429) {
+                    showToast("❌ Mua quá nhanh! Hệ thống Rate Limit đã chặn. Hãy thử lại sau.", true);
+                } else if (response.status === 401) {
+                    showToast("❌ Lỗi xác thực: Sai API Key!", true);
+                } else {
+                    showToast(`❌ Lỗi hệ thống: ${response.statusText}`, true);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast("❌ Không thể kết nối tới máy chủ API (Kong Gateway).", true);
+            } finally {
+                // Tắt hiệu ứng loading
+                setTimeout(() => {
+                    btnElement.classList.remove('loading');
+                    btnElement.querySelector('span').style.display = 'block';
+                    btnElement.querySelector('.spinner').style.display = 'none';
+                }, 500); // Thêm delay nhỏ cho mượt UI
+            }
+        }
+    </script>
+</body>
+</html>

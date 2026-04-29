@@ -279,6 +279,21 @@ curl -H "apikey: noah-secret-key" http://localhost:8000/report
 
 ---
 
+### MODULE 5: Client Storefront (Trang Khách Hàng)
+
+**Option 5: Mô phỏng trang web E-Commerce.**
+
+Đây là giao diện cửa hàng cho phép khách thao tác mua hàng trực quan thay vì gửi lệnh qua Terminal. Giao diện được phục vụ bởi Nginx tại cổng `3000`.
+
+**Cách test Demo:**
+1. Mở trình duyệt truy cập: `http://localhost:3000`
+2. Chọn 1 sản phẩm bất kỳ trên màn hình.
+3. Bấm **Mua Ngay** (Trang web sẽ tự động nhúng API Key và gọi đến cổng `8000` của Kong Gateway).
+4. Sẽ có thông báo màu xanh "Thành công! Đơn hàng #... đã được gửi" hiện lên màn hình.
+5. Mở `http://localhost:8501` (Dashboard) để xem doanh thu thay đổi Real-time.
+
+---
+
 ## PHẦN 3: CHẠY UNIT TESTS (Không cần Docker)
 
 ```bash
@@ -358,3 +373,4 @@ docker system prune -a
 | Module 2B - Order Worker | [Tên] | ✅ Done | 2026-04-25 | 10 tests |
 | Module 3 - Dashboard | [Tên] | ✅ Done | 2026-04-26 | FastAPI & Streamlit UI |
 | Module 4 - Kong Gateway | [Tên] | ✅ Done | 2026-04-26 | API Key & Rate Limit |
+| Module 5 - Storefront | [Tên] | ✅ Done | 2026-04-29 | Nginx & HTML/JS Frontend |

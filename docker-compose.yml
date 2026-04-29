@@ -247,3 +247,15 @@ services:
     depends_on:
       - order_api
       - report_api
+
+  # ========================================================
+  # MODULE 5: CLIENT STOREFRONT (OPTION 5)
+  # ========================================================
+  storefront:
+    container_name: noah_storefront
+    build:
+      context: ./Module5/storefront
+    ports:
+      - "3000:80"
+    networks:
+      - noah_network
