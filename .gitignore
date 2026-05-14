@@ -68,3 +68,9 @@ Module1/cleaned_data/
 .env
 .env.*
 !.env.example
+
+# ========================
+# Tài liệu ôn bảo vệ cá nhân (không commit)
+# ========================
+Document/LOCAL_ON_TAP_BAO_VE.md
+Document/THUYET_TRINH_DEMO_VAN_NOI.md

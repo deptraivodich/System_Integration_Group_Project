@@ -3,10 +3,11 @@ Module 2B: Order Worker - Consumer
 =====================================
 Lắng nghe liên tục từ RabbitMQ queue 'order_queue'
 1. Consume message
-2. Sleep 1-2s (giả lập payment processing)
-3. INSERT vào PostgreSQL (Finance system)
-4. UPDATE MySQL orders.status = 'COMPLETED'
-5. ACK message → RabbitMQ xóa message khỏi queue
+2. Lấy đơn giá MySQL, tính amount = price × quantity
+3. Sleep 1-2s (giả lập payment processing)
+4. INSERT vào PostgreSQL (Finance system), có amount
+5. UPDATE MySQL orders.status = 'COMPLETED'
+6. ACK message → RabbitMQ xóa message khỏi queue
 """
 
 import os
@@ -165,10 +166,11 @@ def process_order(ch, method, properties, body):
     
     Flow:
     1. Parse JSON
-    2. Sleep 1-2s (giả lập payment processing)
-    3. INSERT vào PostgreSQL
-    4. UPDATE MySQL status = COMPLETED
-    5. ACK message (đảm bảo không mất message)
+    2. Lấy price từ MySQL (products), amount = price × quantity
+    3. Sleep 1-2s (giả lập payment processing)
+    4. INSERT vào PostgreSQL (kèm amount)
+    5. UPDATE MySQL status = COMPLETED
+    6. ACK message (đảm bảo không mất message)
     """
     order_id   = None
     pg_conn    = None
@@ -184,6 +186,34 @@ def process_order(ch, method, properties, body):
 
         logger.info(f"[Worker] Nhận được order_id={order_id} | user_id={user_id} | product_id={product_id} | qty={quantity}")
 
+        # Lấy đơn giá từ MySQL (products) để ghi amount phục vụ báo cáo / đề tài (tổng doanh thu theo KH)
+        amount = 0.0
+        price_conn = get_mysql_connection()
+        price_cursor = price_conn.cursor()
+        try:
+            price_cursor.execute(
+                "SELECT price FROM products WHERE id = %s",
+                (product_id,),
+            )
+            prow = price_cursor.fetchone()
+            if prow and prow[0] is not None:
+                try:
+                    amount = float(prow[0]) * float(quantity)
+                except (TypeError, ValueError):
+                    amount = 0.0
+                    logger.warning(
+                        "[Worker] Không ép được price cho product_id=%s, amount=0",
+                        product_id,
+                    )
+            else:
+                logger.warning(
+                    "[Worker] Không tìm thấy product_id=%s trong products, amount=0",
+                    product_id,
+                )
+        finally:
+            price_cursor.close()
+            price_conn.close()
+
         # Bước 2: Giả lập độ trễ thanh toán phức tạp
         delay = random.uniform(1.0, 2.0)
         logger.info(f"[Worker] Đang xử lý thanh toán... (giả lập {delay:.1f}s)")
@@ -194,10 +224,10 @@ def process_order(ch, method, properties, body):
         pg_cursor  = pg_conn.cursor()
         pg_cursor.execute(
             """
-            INSERT INTO transactions (order_id, user_id, product_id, quantity, status)
-            VALUES (%s, %s, %s, %s, 'SYNCED')
+            INSERT INTO transactions (order_id, user_id, product_id, quantity, amount, status)
+            VALUES (%s, %s, %s, %s, %s, 'SYNCED')
             """,
-            (order_id, user_id, product_id, quantity)
+            (order_id, user_id, product_id, quantity, amount),
         )
         pg_conn.commit()
         pg_cursor.close()

@@ -74,7 +74,7 @@ def load_data(page=1, limit=50):
 st.markdown("""
 <div class="header-box">
     <h1>NOAH Retail Unified Commerce</h1>
-    <p>Real-time Command Center & Sales Analytics</p>
+    <p>Trung tâm chỉ huy và Phân tích bán hàng (Data Stitching)</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -104,7 +104,12 @@ if data:
         with col3:
             st.metric(label="Đơn Hoàn Thành", value=f"{completed_orders}", delta=f"{success_rate:.1f}%")
         with col4:
-            st.metric(label="Đơn Đang Xử Lý", value=f"{pending_orders}", delta_color="inverse")
+            st.metric(
+                label="Đơn chờ xử lý",
+                value=f"{pending_orders}",
+                delta_color="inverse",
+                help="Số đơn trong trang hiện tại chưa ở trạng thái COMPLETED (thường là PENDING). Không phải “năm”.",
+            )
 
         st.markdown("---")
 
